@@ -1,51 +1,68 @@
+import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 from camberline import camber_line
 from camberSlope import camber_slope_at_x
 
-def plot_camber_line(naca_code):
+st.set_page_config(layout="wide")
+
+st.title("✈️ NACA Airfoil Camber Line Plotter")
+
+st.markdown(
     """
-    Plots the camber line for a given NACA 4-digit airfoil with correct aspect ratio.
+    <style>
+    .stSlider, .stNumberInput { margin-top: -10px !important; }
+    .stButton>button { background: #0078FF; color: white; font-size: 16px; border-radius: 10px; }
+    </style>
+    """, unsafe_allow_html=True
+)
 
-    Parameters:
-    naca_code : str -> NACA 4-digit code (e.g., "2412")
-    """
-    # Extract parameters from the NACA code
-    M = int(naca_code[0]) / 100  # Max camber
-    P = int(naca_code[1]) / 10   # Position of max camber
+col1, col2 = st.columns([1, 3])
 
-    # Define chordwise positions (0 to 1)
-    x = np.linspace(0, 1, 100)
+with col1:
+    st.subheader("🔢 Input Parameters")
 
-    # Compute camber line
-    y_c = camber_line(x, M, P)
+    # NACA Number Input
+    naca_number = st.text_input("Enter NACA 4-digit Code", "2412")
 
-    # Plot
-    plt.figure(figsize=(8, 2))  # Adjust figure size
-    plt.plot(
-        x, y_c, label=f'NACA {naca_code} Camber Line', color='b', linewidth=2)
-    plt.axhline(0, color='black', linestyle='--', linewidth=0.8)  # Chord line
-    plt.axvline(P, color='r', linestyle=':',
-                label=f'Max Camber at x={P}')  # Max camber position
-    plt.xlabel("Chord Position (x)")
-    plt.ylabel("Camber Line (y_c)")
-    plt.title(f'NACA {naca_code} Camber Line Plot')
-    plt.legend()
-    plt.grid(True)
+    if naca_number.isdigit() and len(naca_number) == 4:
+        M = int(naca_number[0]) / 100
+        P = int(naca_number[1]) / 10
 
-    # Maintain correct aspect ratio (equal scaling for x and y)
-    plt.axis("equal")  # Ensures proper scaling
-    plt.show()
+        # Generate camber line data
+        x = np.linspace(0, 1, 200)
+        y_c = camber_line(x, M, P)
 
-# GENERATE THE AIRFOIL PLOT
+        st.write("### Select x Position (0 to 1)")
 
-naca_number = input("type the naca number below: \n ")
-plot_camber_line(naca_number)
+        # Sync both inputs (text & slider)
+        x_value = st.number_input("Enter exact x position", min_value=0.0, max_value=1.0, value=0.5, step=0.0001, format="%.6f")
+        x_slider = st.slider("Select x position (0 to 1)", min_value=0.0, max_value=1.0, value=x_value, step=0.0001, format="%.6f")
 
+        # Ensure both inputs sync
+        x_value = x_slider if "slider" in st.session_state else x_value
 
+        if st.button("📈 Calculate Slope"):
+            slope = camber_slope_at_x(naca_number, x_value)
+            st.success(f"**Slope at x = {x_value:.6f} for NACA {naca_number}:** {slope:.6f}")
 
-# CALCULATE THE SLOPE AT A SPECIFIC X POSITION
-naca_number = input("Type the NACA number below: \n")
-x_value = float(input("Enter the x position (0 to 1): \n"))
-slope = camber_slope_at_x(naca_number, x_value)
-print(f"The slope at x = {x_value} for NACA {naca_number} is {slope:.6f}")
+with col2:
+    st.subheader("Camber Line Visualization")
+
+    fig, ax = plt.subplots(figsize=(12, 4))  # Set a square figure for even scaling
+    ax.plot(x, y_c, label=f'NACA {naca_number} Camber Line', color='b', linewidth=3)
+    
+    # Max Camber Indicator
+    ax.axvline(P, color='r', linestyle=':', label=f'Max Camber at x={P}')
+    
+    ax.set_xlabel("Chord Position (x)", fontsize=18)
+    ax.set_ylabel("Camber Line (y_c)", fontsize=18)
+    ax.set_title(f'NACA {naca_number} Camber Line Plot', fontsize=22)
+    ax.legend(fontsize=14)
+    ax.grid(True)
+
+    # 🔥 Ensure x and y axes are equally scaled
+    ax.set_aspect('equal', adjustable='datalim')  
+
+    st.pyplot(fig)  # Display in Streamlit
+
