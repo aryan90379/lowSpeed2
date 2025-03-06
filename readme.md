@@ -15,3 +15,6 @@ Ensure you have Python installed on your system.
 ## Run the code
 ```sh
    python -m streamlit run showAirfoil.py
+
+
+   
