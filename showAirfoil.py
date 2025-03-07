@@ -1,9 +1,14 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+from io import BytesIO
 from camberline import camber_line
 from camberSlope import camber_slope_at_x
 from calculateCL import compute_Cl, compute_Cl_poly
+from vectorField import compute_velocity
+from vectorFieldUDF import compute_velocity_poly
+from Circulation import compute_circulation,compute_bound_circulation 
 st.set_page_config(layout="wide")
 
 # 🔷 **Global Styling**
@@ -132,87 +137,190 @@ with col1:
         if st.button("Compute Cl for Polynomial Camber"):
             Cl_poly = compute_Cl_poly(coeffs, alpha)
             st.success(f"**Cl for polynomial camber at {alpha}°:** `{Cl_poly:.6f}`")
+    if option == "NACA 4-Digit":
+        st.subheader("Circulation (Velocity Line Integral)")
+        alpha = st.number_input("Enter Angle of Attack (°)", value=2.0, step=0.1, format="%.2f", key="alpha_input")
+        if st.button("Compute Circulation"):
+            M = int(naca_number[0]) / 10
+            P = int(naca_number[1]) / 10
+            circulation = compute_circulation(M, P, alpha)
+            
+            st.success(f"**Circulation for NACA {naca_number} at {alpha}°:** `{circulation:.4f}`")
+    import streamlit as st
+
+    if option == "NACA 4-Digit":
+        st.subheader("Bound Circulation (Integrating Circulation Distribution)")
+        
+        alpha = st.number_input(
+            "Enter Angle of Attack (°)", 
+            value=2.0, 
+            step=0.1, 
+            format="%.2f", 
+            key="alpha_input_For_Bound"
+        )
+
+        if st.button("Compute Circulation", key="compute_bound_circulation_btn"):
+            M = int(naca_number[0]) / 10
+            P = int(naca_number[1]) / 10
+            
+            # Show an initial status message
+            status = st.status("Computing circulation...", expanded=True)
+            
+        
+            
+            num_steps = 100  # Arbitrary, change based on function complexity
+
+            # Compute circulation
+            circulation = compute_bound_circulation(M, P, alpha)
+
+            # Update the status message
+            status.update(label="Computation complete!", state="complete", expanded=False)
+            
+            st.success(f"**Bound Circulation for NACA {naca_number} at {alpha}°:** `{circulation:.4f}`")
+    
 
 with col2:
-    st.subheader("Airfoil & Camber Line Visualization")
+    st.subheader("Airfoil Analysis")
 
-    fig, ax = plt.subplots(figsize=(8, 3))  # Reduce width for a more compact look
+    # Dropdown for selecting which graph to show
+    option_selected = st.selectbox("Select a Plot to Display:", 
+                                   ["Airfoil & Camber Line", "Slope vs Chord Position", "Lift Coefficient vs Angle of Attack","Vector Field Plot"])
 
-    # Plot camber line
-    ax.plot(
-        x, y_c, 
-        label=f'{"NACA " + naca_number if option == "NACA 4-Digit" else "User-Defined Camber"}',
-        color='#0078FF', linewidth=1
-    )
+    if option_selected == "Airfoil & Camber Line":
+        st.subheader("Airfoil & Camber Line Visualization")
+        fig, ax = plt.subplots(figsize=(8, 3))
 
-    # Airfoil Thickness Calculation (Approximate)
-    def thickness_distribution(x, t=0.12):
-        """Approximate symmetric thickness distribution for visualization"""
-        return 5 * t * (0.2969 * np.sqrt(x) - 0.126 * x - 0.3516 * x**2 + 0.2843 * x**3 - 0.1015 * x**4)
+        # Plot camber line
+        ax.plot(x, y_c, label=f'{"NACA " + naca_number if option == "NACA 4-Digit" else "User-Defined Camber"}',
+                color='#0078FF', linewidth=1)
 
-    y_t = thickness_distribution(x)  # Compute thickness distribution
+        # Compute airfoil thickness
+        def thickness_distribution(x, t=0.10):
+            return 5 * t * (0.2969 * np.sqrt(x) - 0.126 * x - 0.3516 * x**2 + 0.2843 * x**3 - 0.1015 * x**4)
 
-    # Compute airfoil upper and lower surfaces
-    y_upper = y_c + y_t
-    y_lower = y_c - y_t
+        t = int(naca_number[2:]) / 100 if option == "NACA 4-Digit" else 0.10
+        y_t = thickness_distribution(x, t)
+        y_upper, y_lower = y_c + y_t, y_c - y_t
 
-    # Plot airfoil shape
-    ax.plot(x, y_upper, color='black', linewidth=1, label="Airfoil Upper Surface")
-    ax.plot(x, y_lower, color='black', linewidth=1, label="Airfoil Lower Surface")
+        # Plot upper & lower surfaces
+        ax.plot(x, y_upper, color='black', linewidth=1, label="Airfoil Upper Surface")
+        ax.plot(x, y_lower, color='black', linewidth=1, label="Airfoil Lower Surface")
 
-    # Highlight max camber for NACA
-    if option == "NACA 4-Digit":
-        ax.axvline(P, color='r', linestyle=':', linewidth=1, alpha=0.7, label=f'Max Camber at x={P}')
-        ax.text(P + 0.02, max(y_c) * 0.8, "Max Camber", color='r', fontsize=12, fontweight='bold')
+        # Formatting
+        ax.set_xlabel("Chord Position", fontsize=14, fontweight='bold')
+        ax.set_ylabel("Vertical Position", fontsize=14, fontweight='bold')
+        ax.set_title(f'{"✈️ NACA " + naca_number if option == "NACA 4-Digit" else "User-Defined Airfoil"}',
+                     fontsize=16, color='#0078FF')
+        ax.legend(fontsize=12)
+        ax.grid(True, linestyle="--", alpha=0.6)
+        ax.set_aspect('equal', adjustable='datalim')
 
-    # 🖥️ **Enhanced Axis Labels & Title**
-    ax.set_xlabel("Chord Position", fontsize=14, fontweight='bold')
-    ax.set_ylabel("Vertical Position", fontsize=14, fontweight='bold')
-    ax.set_title(
-        f'{"✈️ NACA " + naca_number if option == "NACA 4-Digit" else "User-Defined Airfoil"}',
-        fontsize=16, color='#0078FF'
-    )
-    ax.legend(fontsize=12)
-    ax.grid(True, linestyle="--", alpha=0.6)
+        st.pyplot(fig)
 
-    # Keep equal aspect ratio
-    ax.set_aspect('equal', adjustable='datalim')
+    elif option_selected == "Slope vs Chord Position":
+        st.subheader("Slope of Camber Line vs. Chord Position")
 
-    st.pyplot(fig)
-    
-    
-    # slope vs x graph
-    # 🔹 Compute and plot slope vs. x
-    st.subheader("Slope of Camber Line vs. Chord Position")
+        # Compute slope distribution
+        if option == "NACA 4-Digit":
+            slopes = np.array([camber_slope_at_x(naca_number, xi) for xi in x])
+        else:
+            deriv = np.polyder(coeffs)
+            slopes = np.polyval(deriv, x)
 
-    # Compute slope distribution
-    if option == "NACA 4-Digit":
-        slopes = np.array([camber_slope_at_x(naca_number, xi) for xi in x])
-    else:
-        deriv = np.polyder(coeffs)  # Compute derivative from polynomial
-        slopes = np.polyval(deriv, x)
+        # Create slope plot
+        fig_slope, ax_slope = plt.subplots(figsize=(8, 3))
+        ax_slope.plot(x, slopes, color='r', linewidth=1.5, label="Camber Slope (dy/dx)")
 
-    # Create slope plot
-    fig_slope, ax_slope = plt.subplots(figsize=(8, 3))
-    ax_slope.plot(x, slopes, color='r', linewidth=1.5, label="Camber Slope (dy/dx)")
+        # Highlight maximum slope
+        max_idx = np.argmax(np.abs(slopes))
+        ax_slope.scatter(x[max_idx], slopes[max_idx], color='black', zorder=3, label="Max Slope")
 
-    # Highlight maximum slope
-    max_idx = np.argmax(np.abs(slopes))
-    ax_slope.scatter(x[max_idx], slopes[max_idx], color='black', zorder=3, label="Max Slope")
+        # Formatting
+        ax_slope.set_xlabel("Chord Position (x)", fontsize=12, fontweight='bold')
+        ax_slope.set_ylabel("Camber Slope (dy/dx)", fontsize=12, fontweight='bold')
+        ax_slope.set_title("Slope Distribution Along Chord", fontsize=14, color='r')
+        ax_slope.axhline(0, color="gray", linestyle="--", linewidth=1)
+        ax_slope.legend(fontsize=10)
+        ax_slope.grid(True, linestyle="--", alpha=0.5)
+        ax_slope.set_xlim(0, 1)
 
-    # Formatting
-    ax_slope.set_xlabel("Chord Position (x)", fontsize=12, fontweight='bold')
-    ax_slope.set_ylabel("Camber Slope (dy/dx)", fontsize=12, fontweight='bold')
-    ax_slope.set_title("Slope Distribution Along Chord", fontsize=14, color='r')
-    ax_slope.axhline(0, color="gray", linestyle="--", linewidth=1)
-    ax_slope.legend(fontsize=10)
-    ax_slope.grid(True, linestyle="--", alpha=0.5)
-    ax_slope.set_xlim(0, 1)
+        st.pyplot(fig_slope)
 
-    st.pyplot(fig_slope)
+    elif option_selected == "Lift Coefficient vs Angle of Attack":
+        st.subheader("Lift Coefficient (Cl) vs Angle of Attack (α)")
+        alpha_range = np.linspace(-10, 15, 100)
 
-    
+        if option == "NACA 4-Digit":
+            Cl_values = np.array([compute_Cl(naca_number, a) for a in alpha_range])
+        else:
+            Cl_values = np.array([compute_Cl_poly(coeffs, a) for a in alpha_range])
 
-    
-    
+        # Save data to CSV
+        df = pd.DataFrame({"Angle_of_Attack (α)": alpha_range, "Lift_Coefficient (Cl)": Cl_values})
+        csv_buffer = BytesIO()
+        df.to_csv(csv_buffer, index=False)
+        csv_data = csv_buffer.getvalue()
 
+        # Download button
+        st.download_button(label="📥 Download CSV", 
+                           data=csv_data, 
+                           file_name=f"NACA_{naca_number}_Cl_vs_Alpha.csv" if option == "NACA 4-Digit" else "User_Defined_Cl_vs_Alpha.csv",
+                           mime="text/csv")
+
+        # Create Cl vs Alpha plot
+        fig_Cl, ax_Cl = plt.subplots(figsize=(8, 3))
+        ax_Cl.plot(alpha_range, Cl_values, color='g', linewidth=1.5, label="Lift Coefficient (Cl)")
+
+        # Highlight zero-lift angle
+        zero_lift_idx = np.argmin(np.abs(Cl_values))
+        ax_Cl.axvline(alpha_range[zero_lift_idx], color='r', linestyle='--', linewidth=1, alpha=0.7, label="Zero-Lift Angle")
+        ax_Cl.scatter(alpha_range[zero_lift_idx], Cl_values[zero_lift_idx], color='black', zorder=3)
+
+        # Formatting
+        ax_Cl.set_xlabel("Angle of Attack (α)", fontsize=12, fontweight='bold')
+        ax_Cl.set_ylabel("Lift Coefficient (Cl)", fontsize=12, fontweight='bold')
+        ax_Cl.set_title("Lift Coefficient vs Angle of Attack", fontsize=14, color='g')
+        ax_Cl.axhline(0, color="gray", linestyle="--", linewidth=1)
+        ax_Cl.legend(fontsize=10)
+        ax_Cl.grid(True, linestyle="--", alpha=0.5)
+
+        st.pyplot(fig_Cl)
+    elif option_selected == "Vector Field Plot":
+        st.subheader("Vector Field Plot")
+
+        alpha = st.number_input("Angle of Attack (α in degrees)", min_value=-10.0, max_value=15.0, value=0.01)
+        alpha_rad = np.radians(alpha)
+
+        fig, ax = plt.subplots(figsize=(9, 4))
+        x_cdn, y_cdn = np.meshgrid(np.linspace(-1.5, 2.5, 30), np.linspace(-1, 2, 20))
+
+        if option == "NACA 4-Digit":
+            slopes = np.array([camber_slope_at_x(naca_number, xi) for xi in x])
+            M = int(naca_number[0]) / 10
+            P = int(naca_number[1]) / 10   
+            c, d = compute_velocity(M, P, x_cdn, y_cdn, alpha_rad)
+        else:
+            c, d = compute_velocity_poly(coeffs, x_cdn, y_cdn, alpha_rad)
+
+        magnitude = np.sqrt(c**2 + d**2)
+
+        q = ax.quiver(x_cdn, y_cdn, c, d, magnitude, cmap='turbo', scale=900, width=0.003, edgecolors='k', alpha=0.8)
+        cb = plt.colorbar(q, ax=ax, shrink=0.8, aspect=20, pad=0.02)
+        cb.set_label("Vector Magnitude", fontsize=12, weight='bold')
+
+        # Plot camber line
+        x_coords = np.linspace(0, 1, 1000)
+        y_coords = np.polyval(coeffs, x_coords) if option != "NACA 4-Digit" else [camber_line(i, M, P) for i in x_coords]
+        ax.plot(x_coords, y_coords, color="black", linewidth=1.5)
+
+        ax.set_xlabel("X-Coordinate")
+        ax.set_ylabel("Y-Coordinate")
+        ax.set_title("Velocity Vector Field Around Airfoil")
+        ax.set_xlim(-1.5, 2.5)
+        ax.set_ylim(-1, 2)
+        ax.grid(True, linestyle="--", alpha=0.5)
+
+        st.pyplot(fig)
+
+
+             
