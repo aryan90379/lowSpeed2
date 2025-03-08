@@ -12,7 +12,7 @@ def sumAn(M,P,x,n): # A function that peforms summation of small gamma
 
 def Calculate_gamma(M,P,x,alpha): # Function used to calculate big gamma
     u = 20 # Free Stream velocity as per our simulations
-    AnTotal = sumAn(M,P,x,100)
+    AnTotal = sumAn(M,P,x,100) 
     A0 = compute_A0(M,P,alpha)
     theta = arccos(1-2*x)
     gamma = 2*u*((A0*(1+cos(theta))/sin(theta)) + AnTotal)
@@ -20,60 +20,53 @@ def Calculate_gamma(M,P,x,alpha): # Function used to calculate big gamma
 
 
 
+
+
+
 def compute_velocity(M, P, x, y, alpha):
-    """ 
-    Computes the net velocity at a given point (x, y) by summing induced velocity 
+    """
+    Computes the net velocity at given points (x, y) by summing induced velocity 
     vectors and free-stream velocity.
 
     Parameters:
     M : float -> Maximum camber
     P : float -> Position of maximum camber
-    x : float -> X-coordinate of the point
-    y : float -> Y-coordinate of the point
+    x : array-like -> X-coordinates of the points (circle points)
+    y : array-like -> Y-coordinates of the points (circle points)
     alpha : float -> Angle of attack (in radians)
 
     Returns:
-    vel_x, vel_y : list -> Components of the velocity vector at (x, y)
+    vel_x, vel_y : array-like -> Components of the velocity vector at (x, y)
     """
-    u = 30  # Free-stream velocity
-    vel_x, vel_y = 0, 0  # Initialize velocity components
+    # Ensure x and y are flattened to 1D arrays
+    x = np.asarray(x).flatten()  # Shape: (n_points,)
+    y = np.asarray(y).flatten()  # Shape: (n_points,)
 
-    # Iterate over vortex elements along the camber line, ignoring points near edges
-    for i in np.linspace(0.005, 0.995, 100):
-        yi = camber_line(i, M, P)  # Get camber line height at i
-        # print(i,yi)
-        r = np.sqrt((x - i)**2 + (y - yi)**2)  # Distance from vortex element
+    u = 20  # Free-stream velocity
 
-        # Compute induced velocity using circulation strength
-        v_ind = Calculate_gamma(M, P, i, alpha) * 0.01 / (2 * np.pi * r)
+    # Generate vortex element positions along the camber line
+    vortex_points = np.linspace(0.005, 0.995, 100)  # Shape: (100,)
+    yi = camber_line(vortex_points, M, P)  # Camber line heights (Shape: (100,))
 
-        # Compute velocity components due to induced flow
-        cost = (x - i) / r
-        sint = (y - yi) / r
-        vel_x += v_ind * sint
-        vel_y -= v_ind * cost
+    # Broadcast vortex points and circle points to compute distances
+    dx = x[:, None] - vortex_points  # Shape: (len(x), 100)
+    dy = y[:, None] - yi             # Shape: (len(y), 100)
+    r = np.sqrt(dx**2 + dy**2)       # Distances (Shape: (len(x), 100))
+
+    # Compute induced velocity strength for all vortex points and circle points
+    gamma = Calculate_gamma(M, P, vortex_points, alpha)  # Circulation strengths (Shape: (100,))
+    v_ind = gamma[None, :] * 0.01 / (2 * np.pi * r)      # Induced velocity magnitudes (Shape: (len(x), 100))
+
+    # Compute induced velocity components
+    sint = dy / r  # Sine of angle (Shape: (len(x), 100))
+    cost = dx / r  # Cosine of angle (Shape: (len(x), 100))
+    vel_x_ind = np.sum(v_ind * sint, axis=1)  # Total induced x-velocity (Shape: (len(x),))
+    vel_y_ind = np.sum(-v_ind * cost, axis=1) # Total induced y-velocity (Shape: (len(x),))
 
     # Add free-stream velocity components
-    vel_x += u * np.cos(alpha)
-    vel_y += u * np.sin(alpha)
+    vel_x = vel_x_ind + u * np.cos(alpha)
+    vel_y = vel_y_ind + u * np.sin(alpha)
 
-    return [vel_x, vel_y]  # Return velocity components
-  #Return X and Y component of velocity
+    return vel_x, vel_y  # Return velocity components
 
-def compute_vector_plot(M,P,alpha): # Compute vector field using quiver function and calling the velocity function
-    u = 30
-    x_cdn,y_cdn = meshgrid(linspace(-1,2,20),linspace(-2,2,30))
-    c,d = compute_velocity(M, P, x_cdn, y_cdn, alpha)
-    magnitude = sqrt(c**2 + d**2)
-    quiver(x_cdn,y_cdn,c,d,magnitude,cmap='turbo',scale=900)
-    colorbar()
-    # plot_naca_airfoil(m, p)
-    x_coords = linspace(0,1,1000)
-    y_coords = []
-    for i in x_coords :
-        y_coords.append(camber_line(i,M,P))
-    plot(x_coords,y_coords)
-    show()
-
-# compute_vector_plot(0.7,0.4,0.01) # Call the function toplot the vector field
      

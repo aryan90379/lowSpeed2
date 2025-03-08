@@ -131,27 +131,42 @@ with col1:
 
     if option == "NACA 4-Digit":
         if st.button("Compute Cl for NACA Airfoil"):
-            Cl = compute_Cl(naca_number, alpha)
+            Cl = compute_Cl(naca_number, (alpha*np.pi)/180)
             st.success(f"**Cl for NACA {naca_number} at {alpha}°:** `{Cl:.4f}`")
     else:
         if st.button("Compute Cl for Polynomial Camber"):
-            Cl_poly = compute_Cl_poly(coeffs, alpha)
+            Cl_poly = compute_Cl_poly(coeffs, (alpha*np.pi)/180)
             st.success(f"**Cl for polynomial camber at {alpha}°:** `{Cl_poly:.6f}`")
+            
+            
+            # ---------------------
+            # CIRCULATION DUE TO VELOCITY LINE INTEGRAL
+            
+            
     if option == "NACA 4-Digit":
         st.subheader("Circulation (Velocity Line Integral)")
-        alpha = st.number_input("Enter Angle of Attack (°)", value=2.0, step=0.1, format="%.2f", key="alpha_input")
-        if st.button("Compute Circulation"):
-            M = int(naca_number[0]) / 10
+        alpha1 = st.number_input("Enter Angle of Attack (°)", value=2.0, step=0.1, format="%.2f", key="alpha_input")
+
+        if st.button("Compute Circulation", key="compute_circulation_btn"):
+            M = int(naca_number[0]) / 100
             P = int(naca_number[1]) / 10
-            circulation = compute_circulation(M, P, alpha)
-            
-            st.success(f"**Circulation for NACA {naca_number} at {alpha}°:** `{circulation:.4f}`")
-    import streamlit as st
+
+            # Show an initial status message
+            status = st.status("Computing circulation...", expanded=True)
+
+            # Compute circulation
+            circulation = compute_circulation(M, P, ((alpha1*np.pi)/180))
+
+            # Update the status message
+            status.update(label="Computation complete!", state="complete", expanded=False)
+
+            st.success(f"**Circulation for NACA {naca_number} at {alpha1}°:** `{circulation:.4f}`")
+
 
     if option == "NACA 4-Digit":
         st.subheader("Bound Circulation (Integrating Circulation Distribution)")
         
-        alpha = st.number_input(
+        alpha2 = st.number_input(
             "Enter Angle of Attack (°)", 
             value=2.0, 
             step=0.1, 
@@ -160,23 +175,21 @@ with col1:
         )
 
         if st.button("Compute Circulation", key="compute_bound_circulation_btn"):
-            M = int(naca_number[0]) / 10
+            M = int(naca_number[0]) / 100
             P = int(naca_number[1]) / 10
-            
             # Show an initial status message
             status = st.status("Computing circulation...", expanded=True)
             
         
             
-            num_steps = 100  # Arbitrary, change based on function complexity
 
             # Compute circulation
-            circulation = compute_bound_circulation(M, P, alpha)
+            circulation = compute_bound_circulation(M, P, ((alpha2*np.pi)/180))
 
             # Update the status message
             status.update(label="Computation complete!", state="complete", expanded=False)
             
-            st.success(f"**Bound Circulation for NACA {naca_number} at {alpha}°:** `{circulation:.4f}`")
+            st.success(f"**Bound Circulation for NACA {naca_number} at {alpha2}°:** `{circulation:.4f}`")
     
 
 with col2:

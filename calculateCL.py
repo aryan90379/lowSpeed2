@@ -1,52 +1,34 @@
 import numpy as np
 
 def compute_A0(M, P, alpha):
-    """
-    Compute A0 coefficient using the camber slope equation.
+    points_integration = np.linspace(0, np.pi, 1001)  # Increased resolution for better accuracy
+    x = (1 - np.cos(points_integration)) / 2  # Compute x values
+
+    # Compute dz/dx using vectorized approach
+    dz_dx = np.where(x < P, (2 * M / P**2) * (P - x), (2 * M / (1 - P)**2) * (P - x))
+
+    # Use trapezoidal integration for higher precision
+    integral = np.trapz(dz_dx, points_integration)
     
-    Parameters:
-    M : float -> Maximum camber
-    P : float -> Position of maximum camber
-    alpha : float -> Angle of attack in degrees
-    
-    Returns:
-    A0 : float
-    """
-    theta = np.linspace(0.01, np.pi-0.01, 1000)  # Discretizing the integral
-    x = (1 - np.cos(theta))/2  # Transforming to x-coordinates
-    dz_dx = np.where(
-        x < P, 
-        (2 * M / P**2) * (P - x),
-        (2 * M / (1 - P)**2) * (P - x)
-    )
-    
-    integral = np.trapz(dz_dx, theta)  # Numerical integration
-    A0 = np.radians(alpha) - (1 / np.pi) * integral
+    # Compute A0
+    A0 = alpha - integral / np.pi  
     return A0
 
-def compute_An(M, P, n):
-    """
-    Compute An coefficients for thin airfoil theory.
+def compute_An(M,P,n):  
+    points_integration = np.linspace(0, np.pi, 1001)  # Match resolution with compute_An
+    x = (1 - np.cos(points_integration)) / 2  # Compute x values
 
-    Parameters:
-    M : float -> Maximum camber
-    P : float -> Position of maximum camber
-    n : int -> Fourier coefficient index
+    # Compute dz/dx using vectorized approach
+    dz_dx = np.where(x < P, (2 * M / P**2) * (P - x), (2 * M / (1 - P)**2) * (P - x))
 
-    Returns:
-    An : float
-    """
-    theta = np.linspace(0.01, np.pi-0.01, 1000)
-    x = (1 - np.cos(theta)) / 2
-    dz_dx = np.where(
-        x < P, 
-        (2 * M / P**2) * (P - x),
-        (2 * M / (1 - P)**2) * (P - x)
-    )
-    
-    integrand = dz_dx * np.cos(n * theta)
-    integral = np.trapz(integrand, theta)  # Numerical integration
-    An = (2 / np.pi) * integral
+    # Compute cos(nθ) term
+    cos_n_theta = np.cos(n * points_integration)
+
+    # Use trapezoidal integration for better accuracy
+    integral = np.trapz(dz_dx * cos_n_theta, points_integration)
+
+    # Compute An
+    An = (2 / np.pi) * integral  
     return An
 
 def compute_Cl(naca_code, alpha):
@@ -70,7 +52,6 @@ def compute_Cl(naca_code, alpha):
     return Cl
 
 
-import numpy as np
 
 def compute_A0_poly(coeffs, alpha):
     """
@@ -90,7 +71,7 @@ def compute_A0_poly(coeffs, alpha):
     dz_dx = np.polyval(poly_derivative, x)  # Evaluate slope at x values
 
     integral = np.trapz(dz_dx, theta)  # Numerical integration
-    A0 = np.radians(alpha) - (1 / np.pi) * integral
+    A0 = alpha - (1 / np.pi) * integral
     return A0
 
 def compute_An_poly(coeffs, n):

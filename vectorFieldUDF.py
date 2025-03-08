@@ -12,7 +12,8 @@ def sumAn(coeffs,x,n): # A function that peforms summation of small gamma
     return Sum
 
 def Calculate_gamma(coeffs,x,alpha): # Function used to calculate big gamma
-    u = 20 # Free Stream velocity as per our simulations
+    u = 20
+     # Free Stream velocity as per our simulations
     AnTotal = sumAn(coeffs,x,100)
     A0 = compute_A0_poly(coeffs,alpha)
     theta = arccos(1-2*x)
@@ -35,7 +36,8 @@ def compute_velocity_poly(coeffs, x, y, alpha):
     Returns:
     vel_x, vel_y : list -> Components of the velocity vector at (x, y)
     """
-    u = 30  # Free-stream velocity
+    u = 20
+      # Free-stream velocity
     vel_x, vel_y = 0,0# Initialize velocity components
 
     # Iterate over vortex elements along the camber line, ignoring points near edges
