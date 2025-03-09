@@ -310,7 +310,7 @@ with col2:
         if option == "NACA 4-Digit":
             Cl_values = np.array([compute_Cl(M, P, (a*np.pi)/180) for a in alpha_range])
         else:
-            Cl_values = np.array([compute_Cl_poly(coeffs, a) for a in alpha_range])
+            Cl_values = np.array([compute_Cl_poly(coeffs, (a*np.pi)/180) for a in alpha_range])
 
         # Save data to CSV
         df = pd.DataFrame({"Angle_of_Attack (α)": alpha_range, "Lift_Coefficient (Cl)": Cl_values})
