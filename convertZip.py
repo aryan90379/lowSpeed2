@@ -12,5 +12,5 @@ def zip_files(zip_name, file_paths):
 
 
 # Type all the files down here to convert to zip
-files_to_zip = ["Circulation.py", "showAirfoil.py"]
+files_to_zip = ["Circulation.py", "showAirfoil.py","calculateCL.py","camberline.py","camberSlope.py","vectorField.py","vectorFieldUDF.py","readme.md"]
 zip_files("Low_Speed_Assignment.zip", files_to_zip)

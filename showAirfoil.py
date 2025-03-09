@@ -167,7 +167,7 @@ with col1:
 
     if st.button("Calculate Slope"):
         if option == "NACA 4-Digit":
-            slope = camber_slope_at_x_custom(M, P, x_value)
+            slope = camber_slope_at_x(M, P, x_value)
         else:
             deriv = np.polyder(coeffs)  # Compute derivative directly from coefficients
             slope = np.polyval(deriv, x_value)
@@ -253,7 +253,10 @@ with col2:
         def thickness_distribution(x, t=0.10):
             return 5 * t * (0.2969 * np.sqrt(x) - 0.126 * x - 0.3516 * x**2 + 0.2843 * x**3 - 0.1015 * x**4)
 
-        y_t = thickness_distribution(x, T)
+        if option == "NACA 4-Digit":
+            y_t = thickness_distribution(x, T)   
+        else:
+            y_t = thickness_distribution(x, 0.12)    
         y_upper, y_lower = y_c + y_t, y_c - y_t
 
         # Plot upper & lower surfaces
@@ -305,7 +308,7 @@ with col2:
         alpha_range = np.linspace(-10, 15, 100)
 
         if option == "NACA 4-Digit":
-            Cl_values = np.array([compute_Cl(M, P, a) for a in alpha_range])
+            Cl_values = np.array([compute_Cl(M, P, (a*np.pi)/180) for a in alpha_range])
         else:
             Cl_values = np.array([compute_Cl_poly(coeffs, a) for a in alpha_range])
 

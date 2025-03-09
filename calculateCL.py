@@ -1,13 +1,16 @@
 import numpy as np
 
 def compute_A0(M, P, alpha):
-    points_integration = np.linspace(0, np.pi, 1001)  # Increased resolution for better accuracy
+    """
+    Compute the value of A0 , the fourier constant used in our thin airfoil theory derivation
+    """
+    points_integration = np.linspace(0, np.pi, 1001)  
     x = (1 - np.cos(points_integration)) / 2  # Compute x values
 
     # Compute dz/dx using vectorized approach
     dz_dx = np.where(x < P, (2 * M / P**2) * (P - x), (2 * M / (1 - P)**2) * (P - x))
-
-    # Use trapezoidal integration for higher precision
+    
+    #Integrating using trapezoid
     integral = np.trapz(dz_dx, points_integration)
     
     # Compute A0
@@ -15,7 +18,10 @@ def compute_A0(M, P, alpha):
     return A0
 
 def compute_An(M,P,n):  
-    points_integration = np.linspace(0, np.pi, 1001)  # Match resolution with compute_An
+    """
+    Compute the value of An , the fourier constant used in our thin airfoil theory derivation
+    """
+    points_integration = np.linspace(0, np.pi, 1001)  
     x = (1 - np.cos(points_integration)) / 2  # Compute x values
 
     # Compute dz/dx using vectorized approach
@@ -24,7 +30,7 @@ def compute_An(M,P,n):
     # Compute cos(nθ) term
     cos_n_theta = np.cos(n * points_integration)
 
-    # Use trapezoidal integration for better accuracy
+
     integral = np.trapz(dz_dx * cos_n_theta, points_integration)
 
     # Compute An
@@ -34,10 +40,6 @@ def compute_An(M,P,n):
 def compute_Cl(M,P, alpha):
     """
     Computes the lift coefficient Cl for a thin airfoil.
-
-    Parameters:
-    naca_code : str -> NACA 4-digit code (e.g., "2412")
-    alpha : float -> Angle of attack in degrees
 
     Returns:
     Cl : float -> Lift coefficient

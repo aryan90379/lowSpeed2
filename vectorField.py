@@ -3,14 +3,27 @@ from numpy import *
 from matplotlib.pyplot import *
 from camberline import *
 
-def sumAn(M,P,x,n): # A function that peforms summation of small gamma
+def sumAn(M,P,x,n): 
+    """
+    Calculate the of An upto given n
+    M -> Max camber (0,1) 
+    P -> Max camber
+    x -> x coordinate
+    """
     Sum = 0
     theta = arccos(1-2*x)
     for i in range (1,n):
         Sum += (compute_An(M,P,i) * sin(i*theta))
     return Sum
 
-def Calculate_gamma(M,P,x,alpha): # Function used to calculate big gamma
+def Calculate_gamma(M,P,x,alpha): 
+    """
+    Calculate the circulation distribution at a particular x coordinate of the airfoil
+    M -> max camber (0,1)
+    P -> positon of it (0,1)
+    x -> x coordinate of the camber point around wihc we calculating circulation distribution
+    alpha -> angle in radians
+    """
     u = 20 # Free Stream velocity as per our simulations
     AnTotal = sumAn(M,P,x,100) 
     A0 = compute_A0(M,P,alpha)
@@ -66,7 +79,6 @@ def compute_velocity(M, P, x, y, alpha):
     # Add free-stream velocity components
     vel_x = vel_x_ind + u * np.cos(alpha)
     vel_y = vel_y_ind + u * np.sin(alpha)
-    # print(vel_x,vel_y)
     return vel_x, vel_y  # Return velocity components
 
      
