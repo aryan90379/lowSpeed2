@@ -31,8 +31,8 @@ def compute_velocity(M, P, x, y, alpha):
     Parameters:
     M : float -> Maximum camber
     P : float -> Position of maximum camber
-    x : array-like -> X-coordinates of the points (circle points)
-    y : array-like -> Y-coordinates of the points (circle points)
+    x : array-like -> X-coordinates of the points 
+    y : array-like -> Y-coordinates of the points 
     alpha : float -> Angle of attack (in radians)
 
     Returns:
@@ -66,7 +66,7 @@ def compute_velocity(M, P, x, y, alpha):
     # Add free-stream velocity components
     vel_x = vel_x_ind + u * np.cos(alpha)
     vel_y = vel_y_ind + u * np.sin(alpha)
-
+    # print(vel_x,vel_y)
     return vel_x, vel_y  # Return velocity components
 
      

@@ -31,7 +31,7 @@ def compute_An(M,P,n):
     An = (2 / np.pi) * integral  
     return An
 
-def compute_Cl(naca_code, alpha):
+def compute_Cl(M,P, alpha):
     """
     Computes the lift coefficient Cl for a thin airfoil.
 
@@ -42,8 +42,7 @@ def compute_Cl(naca_code, alpha):
     Returns:
     Cl : float -> Lift coefficient
     """
-    M = int(naca_code[0]) / 100  # Max camber
-    P = int(naca_code[1]) / 10   # Position of max camber
+
     
     A0 = compute_A0(M, P, alpha)
     A1 = compute_An(M, P, 1)  # Only A1 is needed

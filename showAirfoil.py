@@ -11,41 +11,93 @@ from vectorFieldUDF import compute_velocity_poly
 from Circulation import compute_circulation,compute_bound_circulation 
 st.set_page_config(layout="wide")
 
-# 🔷 **Global Styling**
 st.markdown(
     """
     <style>
-    /* Make everything look smoother */
-    .stSlider, .stNumberInput { margin-top: -10px !important; }
+    /* Make input elements sleek */
+    .stTextInput>div>div>input, .stNumberInput>div>div>input, .stTextArea>div>textarea {
+        font-size: 16px;
+        padding: 10px;
+        border-radius: 10px;
+        border: 2px solid #0078FF;
+        box-shadow: 0px 4px 10px rgba(0, 120, 255, 0.2);
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .stTextInput>div>div>input:focus, .stNumberInput>div>div>input:focus, .stTextArea>div>textarea:focus {
+        border-color: #00C6FF;
+        box-shadow: 0px 4px 15px rgba(0, 198, 255, 0.4);
+    }
+
+    /* Style sliders */
+    .stSlider>div {
+        padding: 8px 0;
+    }
+
+    /* Modern buttons */
     .stButton>button { 
         background: linear-gradient(to right, #0078FF, #00C6FF); 
         color: white; 
         font-size: 18px; 
+        font-weight: bold;
         border-radius: 12px; 
-        padding: 8px 20px;
+        padding: 10px 25px;
+        border: none;
+        box-shadow: 0px 5px 15px rgba(0, 120, 255, 0.3);
         transition: all 0.3s ease-in-out;
     }
+
     .stButton>button:hover { 
         background: linear-gradient(to right, #0056b3, #009ac9); 
-        transform: scale(1.05);
+        transform: scale(1.08);
+        box-shadow: 0px 8px 20px rgba(0, 120, 255, 0.5);
     }
-    .stTextInput>div>div>input {
-        font-size: 16px;
-        padding: 6px;
+
+    /* Stylish select box */
+    .stSelectbox>div>div {
         border-radius: 8px;
+        border: 2px solid #0078FF;
+        box-shadow: 0px 4px 10px rgba(0, 120, 255, 0.2);
+        transition: all 0.3s ease-in-out;
     }
-    .stNumberInput>div>div>input {
-        font-size: 16px;
-        padding: 6px;
+
+    /* Checkbox style */
+    .stCheckbox>div {
+        padding: 5px;
         border-radius: 8px;
+        transition: all 0.3s ease-in-out;
     }
-    .stSlider>div {
-        padding: 5px 0;
+
+    /* Headers & Titles */
+    h1, h2, h3, h4 {
+        font-weight: bold;
+        color: #0078FF;
+        text-shadow: 1px 1px 4px rgba(0, 120, 255, 0.3);
     }
+
+    /* Styling Expander */
+    .stExpander>summary {
+        font-size: 16px;
+        font-weight: bold;
+        color: white;
+        background: linear-gradient(to right, #0078FF, #00C6FF);
+        padding: 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        box-shadow: 0px 4px 12px rgba(0, 120, 255, 0.3);
+    }
+    
+    /* Progress bar */
+    .stProgress>div>div>div {
+        background: linear-gradient(to right, #0078FF, #00C6FF);
+        border-radius: 10px;
+    }
+    
     </style>
     """,
     unsafe_allow_html=True
 )
+
 
 st.title("NACA & Custom Camber Line Plotter")
 
@@ -60,18 +112,15 @@ with col1:
     st.subheader("Input Parameters")
 
     if option == "NACA 4-Digit":
-        naca_number = st.text_input("Enter NACA 4-digit Code", "2412")
+        M = st.number_input("Enter Maximum Camber (M) [0-1]", min_value=0.0, max_value=1.0, value=0.02, step=0.001, format="%.3f")
+        P = st.number_input("Enter Position of Maximum Camber (P) [0-1]", min_value=0.0, max_value=1.0, value=0.4, step=0.001, format="%.3f")
+        T = st.number_input("Enter Maximum Thickness (T) [0-1]", min_value=0.0, max_value=1.0, value=0.12, step=0.001, format="%.3f")
 
-        if naca_number.isdigit() and len(naca_number) == 4:
-            M = int(naca_number[0]) / 100
-            P = int(naca_number[1]) / 10
-            x = np.linspace(0, 1, 200)
-            y_c = camber_line(x, M, P)
-        else:
-            st.error("❌ Please enter a valid 4-digit NACA code.")
-            st.stop()
+        x = np.linspace(0, 1, 200)
+        y_c = camber_line(x, M, P)
+    
 
-    else:  # User-defined function
+    else:  # User-defined polynomial camber function
         coeffs_input = st.text_input(
             "✏️ Enter polynomial coefficients (comma-separated)", 
             "0.1, -0.05, 0.02, -0.01, 0.29"
@@ -118,7 +167,7 @@ with col1:
 
     if st.button("Calculate Slope"):
         if option == "NACA 4-Digit":
-            slope = camber_slope_at_x(naca_number, x_value)
+            slope = camber_slope_at_x_custom(M, P, x_value)
         else:
             deriv = np.polyder(coeffs)  # Compute derivative directly from coefficients
             slope = np.polyval(deriv, x_value)
@@ -131,16 +180,16 @@ with col1:
 
     if option == "NACA 4-Digit":
         if st.button("Compute Cl for NACA Airfoil"):
-            Cl = compute_Cl(naca_number, (alpha*np.pi)/180)
-            st.success(f"**Cl for NACA {naca_number} at {alpha}°:** `{Cl:.4f}`")
+            Cl = compute_Cl(M, P, (alpha*np.pi)/180)
+            st.success(f"**Cl for NACA airfoil at {alpha}°:** `{Cl:.4f}`")
     else:
         if st.button("Compute Cl for Polynomial Camber"):
             Cl_poly = compute_Cl_poly(coeffs, (alpha*np.pi)/180)
             st.success(f"**Cl for polynomial camber at {alpha}°:** `{Cl_poly:.6f}`")
             
             
-            # ---------------------
-            # CIRCULATION DUE TO VELOCITY LINE INTEGRAL
+    # ---------------------
+    # CIRCULATION DUE TO VELOCITY LINE INTEGRAL
             
             
     if option == "NACA 4-Digit":
@@ -148,9 +197,6 @@ with col1:
         alpha1 = st.number_input("Enter Angle of Attack (°)", value=2.0, step=0.1, format="%.2f", key="alpha_input")
 
         if st.button("Compute Circulation", key="compute_circulation_btn"):
-            M = int(naca_number[0]) / 100
-            P = int(naca_number[1]) / 10
-
             # Show an initial status message
             status = st.status("Computing circulation...", expanded=True)
 
@@ -160,7 +206,7 @@ with col1:
             # Update the status message
             status.update(label="Computation complete!", state="complete", expanded=False)
 
-            st.success(f"**Circulation for NACA {naca_number} at {alpha1}°:** `{circulation:.4f}`")
+            st.success(f"**Circulation at {alpha1}°:** `{circulation:.4f}`")
 
 
     if option == "NACA 4-Digit":
@@ -175,44 +221,39 @@ with col1:
         )
 
         if st.button("Compute Circulation", key="compute_bound_circulation_btn"):
-            M = int(naca_number[0]) / 100
-            P = int(naca_number[1]) / 10
             # Show an initial status message
             status = st.status("Computing circulation...", expanded=True)
             
-        
-            
-
             # Compute circulation
             circulation = compute_bound_circulation(M, P, ((alpha2*np.pi)/180))
 
             # Update the status message
             status.update(label="Computation complete!", state="complete", expanded=False)
             
-            st.success(f"**Bound Circulation for NACA {naca_number} at {alpha2}°:** `{circulation:.4f}`")
-    
+            st.success(f"**Bound Circulation at {alpha2}°:** `{circulation:.4f}`")
+
 
 with col2:
     st.subheader("Airfoil Analysis")
 
     # Dropdown for selecting which graph to show
-    option_selected = st.selectbox("Select a Plot to Display:", 
-                                   ["Airfoil & Camber Line", "Slope vs Chord Position", "Lift Coefficient vs Angle of Attack","Vector Field Plot"])
+    option_selected = st.selectbox(
+        "Select a Plot to Display:",
+        ["Airfoil & Camber Line", "Slope vs Chord Position", "Lift Coefficient vs Angle of Attack", "Vector Field Plot"]
+    )
 
     if option_selected == "Airfoil & Camber Line":
         st.subheader("Airfoil & Camber Line Visualization")
         fig, ax = plt.subplots(figsize=(8, 3))
 
         # Plot camber line
-        ax.plot(x, y_c, label=f'{"NACA " + naca_number if option == "NACA 4-Digit" else "User-Defined Camber"}',
-                color='#0078FF', linewidth=1)
+        ax.plot(x, y_c, label="Camber Line", color='#0078FF', linewidth=1)
 
         # Compute airfoil thickness
         def thickness_distribution(x, t=0.10):
             return 5 * t * (0.2969 * np.sqrt(x) - 0.126 * x - 0.3516 * x**2 + 0.2843 * x**3 - 0.1015 * x**4)
 
-        t = int(naca_number[2:]) / 100 if option == "NACA 4-Digit" else 0.10
-        y_t = thickness_distribution(x, t)
+        y_t = thickness_distribution(x, T)
         y_upper, y_lower = y_c + y_t, y_c - y_t
 
         # Plot upper & lower surfaces
@@ -222,9 +263,9 @@ with col2:
         # Formatting
         ax.set_xlabel("Chord Position", fontsize=14, fontweight='bold')
         ax.set_ylabel("Vertical Position", fontsize=14, fontweight='bold')
-        ax.set_title(f'{"✈️ NACA " + naca_number if option == "NACA 4-Digit" else "User-Defined Airfoil"}',
-                     fontsize=16, color='#0078FF')
+        ax.set_title("Airfoil & Camber Line", fontsize=16, color='#0078FF')
         ax.legend(fontsize=12)
+        ax.set_xlim(0, 1)
         ax.grid(True, linestyle="--", alpha=0.6)
         ax.set_aspect('equal', adjustable='datalim')
 
@@ -235,7 +276,7 @@ with col2:
 
         # Compute slope distribution
         if option == "NACA 4-Digit":
-            slopes = np.array([camber_slope_at_x(naca_number, xi) for xi in x])
+            slopes = np.array([camber_slope_at_x(M, P, xi) for xi in x])
         else:
             deriv = np.polyder(coeffs)
             slopes = np.polyval(deriv, x)
@@ -264,7 +305,7 @@ with col2:
         alpha_range = np.linspace(-10, 15, 100)
 
         if option == "NACA 4-Digit":
-            Cl_values = np.array([compute_Cl(naca_number, a) for a in alpha_range])
+            Cl_values = np.array([compute_Cl(M, P, a) for a in alpha_range])
         else:
             Cl_values = np.array([compute_Cl_poly(coeffs, a) for a in alpha_range])
 
@@ -275,10 +316,12 @@ with col2:
         csv_data = csv_buffer.getvalue()
 
         # Download button
-        st.download_button(label="📥 Download CSV", 
-                           data=csv_data, 
-                           file_name=f"NACA_{naca_number}_Cl_vs_Alpha.csv" if option == "NACA 4-Digit" else "User_Defined_Cl_vs_Alpha.csv",
-                           mime="text/csv")
+        st.download_button(
+            label="📥 Download CSV",
+            data=csv_data,
+            file_name="Cl_vs_Alpha.csv",
+            mime="text/csv"
+        )
 
         # Create Cl vs Alpha plot
         fig_Cl, ax_Cl = plt.subplots(figsize=(8, 3))
@@ -298,6 +341,7 @@ with col2:
         ax_Cl.grid(True, linestyle="--", alpha=0.5)
 
         st.pyplot(fig_Cl)
+
     elif option_selected == "Vector Field Plot":
         st.subheader("Vector Field Plot")
 
@@ -308,9 +352,7 @@ with col2:
         x_cdn, y_cdn = np.meshgrid(np.linspace(-1.5, 2.5, 30), np.linspace(-1, 2, 20))
 
         if option == "NACA 4-Digit":
-            slopes = np.array([camber_slope_at_x(naca_number, xi) for xi in x])
-            M = int(naca_number[0]) / 10
-            P = int(naca_number[1]) / 10   
+            slopes = np.array([camber_slope_at_x(M, P, xi) for xi in x])
             c, d = compute_velocity(M, P, x_cdn, y_cdn, alpha_rad)
         else:
             c, d = compute_velocity_poly(coeffs, x_cdn, y_cdn, alpha_rad)
@@ -334,6 +376,7 @@ with col2:
         ax.grid(True, linestyle="--", alpha=0.5)
 
         st.pyplot(fig)
+
 
 
              
